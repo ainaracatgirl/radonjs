@@ -211,8 +211,9 @@ export class TargetCameraComponent extends Component {
 
 const physicsScenes = {};
 export class BoxColliderComponent extends Component {
-    onInit({ scale, scene }) {
+    onInit({ scale, scene, invert }) {
         this.box = new Box3();
+        this.invert = invert;
         this.geometry = new BoxGeometry(this.object.scale.x * (scale ?? 1), this.object.scale.y * (scale ?? 1), this.object.scale.z * (scale ?? 1));
         this.geometry.computeBoundingBox();
         if (!physicsScenes[(scene ?? 'default')]) physicsScenes[(scene ?? 'default')] = [];
@@ -235,15 +236,16 @@ export class BoxColliderComponent extends Component {
         for (const po of physicsScenes[this.pscene]) {
             if (po.object.uuid == this.object.uuid) continue;
             po.updateCollider();
-            if (po.box && box.intersectsBox(po.box)) return po;
-            if (po.sphere && box.intersectsSphere(po.sphere)) return po;
+            if (po.box && (box.intersectsBox(po.box) ^ po.invert ^ this.invert)) return po;
+            if (po.sphere && (box.intersectsSphere(po.sphere) ^ po.invert ^ this.invert)) return po;
         }
     }
 }
 
 export class SphereColliderComponent extends Component {
-    onInit({ scale, scene }) {
+    onInit({ scale, scene, invert }) {
         this.sphere = new Sphere(new Vector3(0, 0, 0), this.object.scale.length() * scale);
+        this.invert = invert;
         if (!physicsScenes[(scene ?? 'default')]) physicsScenes[(scene ?? 'default')] = [];
         physicsScenes[(scene ?? 'default')].push(this);
         this.pscene = scene ?? 'default';
@@ -264,8 +266,8 @@ export class SphereColliderComponent extends Component {
         for (const po of physicsScenes[this.pscene]) {
             if (po.object.uuid == this.object.uuid) continue;
             po.updateCollider();
-            if (po.box && sphere.intersectsBox(po.box)) return po;
-            if (po.sphere && sphere.intersectsSphere(po.sphere)) return po;
+            if (po.box && (sphere.intersectsBox(po.box) ^ po.invert ^ this.invert)) return po;
+            if (po.sphere && (sphere.intersectsSphere(po.sphere) ^ po.invert ^ this.invert)) return po;
         }
     }
 

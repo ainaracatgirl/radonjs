@@ -11,7 +11,7 @@
 </head>
 <body>
     <script type="module">
-        import { initRadon, activeCamera, TargetCameraComponent, Component, setActiveScene, startRadon, loadGLTF, loadEnvironmentHDR, Input, lerpAngle, RAD2DEG, DEG2RAD, FORWARD, applyOutdoorsLighting, BoxColliderComponent } from './src/radon.js'
+        import { initRadon, activeCamera, TargetCameraComponent, Component, setActiveScene, startRadon, loadGLTF, loadEnvironmentHDR, Input, lerpAngle, RAD2DEG, DEG2RAD, FORWARD, applyOutdoorsLighting, BoxColliderComponent, SphereColliderComponent } from './src/radon.js'
         import { Scene, Vector3, BoxGeometry, MeshBasicMaterial, Mesh } from './src/three.module.js'
 
         const WORLD_SCALE = 200;
@@ -21,7 +21,7 @@
                 this.speed = speed ?? 6;
                 this.targetAngle = 0;
                 this.mapping = Input.createMapping({ vertical: { n: ['w'], p: ['s'] }, horizontal: { n: ['a'], p: ['d'] } });
-                this.boxc = this.object.FindComponent['BoxColliderComponent'];
+                this.coll = this.object.FindComponent['SphereColliderComponent'];
             }
 
             onTick({ delta }) {
@@ -33,7 +33,7 @@
                     this.targetAngle = (Math.atan2(-dir.x, -dir.z) + azimuth) * RAD2DEG;
 
                     this.object.translateOnAxis(FORWARD, this.speed * delta);
-                    if (this.boxc.findCollision()) {
+                    if (this.coll.findCollision()) {
                         this.object.translateOnAxis(FORWARD, this.speed * -delta);
                     }
                 }
@@ -50,7 +50,7 @@
 
         const player = models[1].instance();
         player.scene.position.set(0, 6.5, 0);
-        new BoxColliderComponent(player.scene, { scene: 'world', scale: 2 });
+        new SphereColliderComponent(player.scene, { scene: 'world', scale: .75 });
         new MovementComponent(player.scene);
         new TargetCameraComponent(activeCamera, { target: player.scene });
 

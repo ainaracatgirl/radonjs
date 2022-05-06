@@ -1,4 +1,4 @@
-import { WebGLRenderer, PerspectiveCamera, Clock, AnimationMixer, Object3D, LoopOnce, PMREMGenerator, sRGBEncoding, Vector3, AmbientLight, HemisphereLight, DirectionalLight, WireframeGeometry, LineSegments, BoxGeometry, Color, Box3 } from './three.module.js'
+import { WebGLRenderer, PerspectiveCamera, Clock, AnimationMixer, Object3D, LoopOnce, PMREMGenerator, sRGBEncoding, Vector3, AmbientLight, HemisphereLight, DirectionalLight, WireframeGeometry, LineSegments, BoxGeometry, Color, Box3, Sphere } from './three.module.js'
 import { GLTFLoader } from './GLTFLoader.js'
 import { RGBELoader } from './RGBELoader.js'
 import Stats from './stats.module.js'
@@ -239,6 +239,36 @@ export class BoxColliderComponent extends Component {
             if (po.sphere && box.intersectsSphere(po.sphere)) return po;
         }
     }
+}
+
+export class SphereColliderComponent extends Component {
+    onInit({ scale, scene }) {
+        this.sphere = new Sphere(new Vector3(0, 0, 0), this.object.scale.length() * scale);
+        if (!physicsScenes[(scene ?? 'default')]) physicsScenes[(scene ?? 'default')] = [];
+        physicsScenes[(scene ?? 'default')].push(this);
+        this.pscene = scene ?? 'default';
+        this.pos = new Vector3();
+        this.updateCollider();
+    }
+
+    updateCollider() {
+        this.object.getWorldPosition(this.pos);
+        this.sphere.center.set(this.pos.x, this.pos.y, this.pos.z);
+    }
+   
+    findCollision(offset) {
+        this.updateCollider();
+
+        let sphere = this.sphere;
+        if (offset) sphere = this.sphere.clone().translate(offset);
+        for (const po of physicsScenes[this.pscene]) {
+            if (po.object.uuid == this.object.uuid) continue;
+            po.updateCollider();
+            if (po.box && sphere.intersectsBox(po.box)) return po;
+            if (po.sphere && sphere.intersectsSphere(po.sphere)) return po;
+        }
+    }
+
 }
 
 const Input = {

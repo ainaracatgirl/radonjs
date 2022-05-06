@@ -11,17 +11,18 @@
 </head>
 <body>
     <script type="module">
-        import { initRadon, activeCamera, TargetCameraComponent, Component, setActiveScene, startRadon, loadGLTF, loadEnvironmentHDR, Input, lerpAngle, RAD2DEG, DEG2RAD, FORWARD, applyOutdoorsLighting, BoxColliderComponent, SphereColliderComponent } from './src/radon.js'
+        import { initRadon, activeCamera, TargetCameraComponent, Component, setActiveScene, startRadon, loadGLTF, loadEnvironmentHDR, loadBHM, Input, lerpAngle, RAD2DEG, DEG2RAD, FORWARD, applyOutdoorsLighting, BoxColliderComponent, SphereColliderComponent, BHMColliderComponent } from './src/radon.js'
         import { Scene, Vector3, BoxGeometry, MeshBasicMaterial, Mesh } from './src/three.module.js'
 
         const WORLD_SCALE = 200;
 
         class MovementComponent extends Component {
-            onInit({ speed }) {
+            onInit({ speed, bhmc }) {
                 this.speed = speed ?? 6;
                 this.targetAngle = 0;
                 this.mapping = Input.createMapping({ vertical: { n: ['w'], p: ['s'] }, horizontal: { n: ['a'], p: ['d'] } });
                 this.coll = this.object.FindComponent['SphereColliderComponent'];
+                this.bhmc = bhmc;
             }
 
             onTick({ delta }) {
@@ -38,20 +39,29 @@
                     }
                 }
                 this.object.rotation.y = lerpAngle(this.object.rotation.y * RAD2DEG, this.targetAngle, 10 * delta) * DEG2RAD;
+
+                if (Input.isKeyDown(' ')) {
+                    const [ x, y ] = this.bhmc.posToPix(this.object.position.x, this.object.position.z);
+                    const hei = this.bhmc.heightAtPix(x, y);
+                    this.object.position.y = hei;
+                }
             }
         }
 
         initRadon({ debug: (window.outerHeight - window.innerHeight) > 100 || (window.outerWidth - window.innerWidth) > 100 });
-        const env = await loadEnvironmentHDR("footprint_court_2k.hdr");
+        const env = await loadEnvironmentHDR("footprint_court_1k.hdr");
         activeCamera.position.set(0, 10, 10);
         const models = await loadGLTF([ "ht2.glb", "cube.glb" ]);
         const world = models[0].instance();
         world.scene.scale.set(WORLD_SCALE, WORLD_SCALE, WORLD_SCALE);
 
+        const bhm = await loadBHM('ht2.glb.bhm');
+        const bhmc = new BHMColliderComponent(world.scene, { heightmap: bhm, scale: WORLD_SCALE });
+
         const player = models[1].instance();
         player.scene.position.set(0, 6.5, 0);
         new SphereColliderComponent(player.scene, { scene: 'world', scale: .75 });
-        new MovementComponent(player.scene);
+        new MovementComponent(player.scene, { bhmc });
         new TargetCameraComponent(activeCamera, { target: player.scene });
 
         const scene = new Scene();

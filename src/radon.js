@@ -270,7 +270,6 @@ export class SphereColliderComponent extends Component {
             if (po.sphere && (sphere.intersectsSphere(po.sphere) ^ po.invert ^ this.invert)) return po;
         }
     }
-
 }
 
 const Input = {
@@ -312,6 +311,10 @@ const Input = {
         return this.keyboard[key.toLowerCase()];
     },
 
+    isKeyDownNow(key) {
+        return this.keyboardf[key.toLowerCase()];
+    },
+
     createMapping(def) {
         const mappingObj = { def };
         for (const key in def) mappingObj[key] = 0;
@@ -333,3 +336,45 @@ const RAD2DEG = 180 / Math.PI;
 const DEG2RAD = Math.PI / 180;
 const FORWARD = new Vector3(0, 0, -1);
 export { Input, RAD2DEG, DEG2RAD, lerp, lerpAngle, clamp, FORWARD }
+
+export async function loadBHM(path) {
+    const res = await fetch(path);
+    const bytes = await res.arrayBuffer();
+    const data = new DataView(bytes);
+    if (data.getUint8(0) != 66) throw new Error("BHM format signature not found");
+    if (data.getUint8(1) != 72) throw new Error("BHM format signature not found");
+    if (data.getUint8(2) != 77) throw new Error("BHM format signature not found");
+    const size = data.getInt16(3, false);
+    const maxY = data.getFloat32(5, false);
+
+    let pxdata = [];
+    for (let x = 0; x < size; x++) {
+        let row = [];
+        for (let y = 0; y < size; y++) {
+            row[y] = data.getUint8(9 + (y * size + x), false) / 255 * maxY;
+        }
+        pxdata[x] = row;
+    }
+
+    return { size, maxY, pxdata } 
+}
+
+export class BHMColliderComponent extends Component {
+    onInit({ heightmap, scale }) {
+        this.bhm = heightmap;
+        this.scale = scale;
+    }
+
+    posToPix(x, y) {
+        const cx = (this.object.position.x - x) / this.scale;
+        const cy = (this.object.position.z - y) / this.scale;
+        const px = (cx + 1) / 2 * this.bhm.size;
+        const py = (cy + 1) / 2 * this.bhm.size;
+
+        return [ px | 0, py | 0 ];
+    }
+
+    heightAtPix(px, py) {
+        return this.bhm.pxdata[py][px] * this.scale;
+    }
+}

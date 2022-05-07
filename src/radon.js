@@ -368,8 +368,8 @@ export class BHMColliderComponent extends Component {
     posToPix(x, y) {
         const cx = (this.object.position.x - x) / this.scale;
         const cy = (this.object.position.z - y) / this.scale;
-        const px = (cx + 1) / 2 * this.bhm.size;
-        const py = (cy + 1) / 2 * this.bhm.size;
+        const px = (-cx + 1) / 2 * this.bhm.size;
+        const py = (-cy + 1) / 2 * this.bhm.size;
 
         return [ px | 0, py | 0 ];
     }
@@ -377,4 +377,8 @@ export class BHMColliderComponent extends Component {
     heightAtPix(px, py) {
         return this.bhm.pxdata[py][px] * this.scale;
     }
+
+    intersectsBox(box) {}
+
+    intersectsSphere(sphere) {}
 }

@@ -50,14 +50,21 @@
                 }
                 this.object.rotation.y = lerpAngle(this.object.rotation.y * RAD2DEG, this.targetAngle, 10 * delta) * DEG2RAD;
                 
+                let isGrounded = false;
+                this.object.position.y += this.velY * delta;
+                if (this.coll.findCollision()) {
+                    this.object.position.y -= this.velY * delta;
+                    if (this.velY < 0) this.velY = 0;
+                    isGrounded = true;
+                }
                 if (this.object.position.y > this._heiAtPt + this.groundOff) {
                     this.velY -= 19.62 * delta;
                 } else {
                     this.velY = ((this._heiAtPt + this.groundOff) - this.object.position.y) * 7.5;
-
-                    if (Input.isKeyDownNow(' ')) this.velY = 9.81;
+                    isGrounded = true;
                 }
-                this.object.position.y += this.velY * delta;
+
+                if (isGrounded && Input.isKeyDownNow(' ')) this.velY = 9.81;
             }
         }
 

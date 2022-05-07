@@ -89,12 +89,14 @@ export function applyOutdoorsLighting(scene) {
 export function startRadon() {
     function animate() {
         const delta = clock.getDelta();
-        activeScene.traverse(child => {
-            if (child.components) child.components.forEach(x => {
-                if (!x._sceneAttached) { x._sceneAttached = true; x.onSceneAttached({ scene: activeScene }); }
-                x.onTick({ delta });
+        if (!document.hidden) {
+            activeScene.traverse(child => {
+                if (child.components) child.components.forEach(x => {
+                    if (!x._sceneAttached) { x._sceneAttached = true; x.onSceneAttached({ scene: activeScene }); }
+                    x.onTick({ delta });
+                });
             });
-        })
+        }
         updateHandlers.forEach(x => x({ delta }));
         renderer.render(activeScene, activeCamera);
 
@@ -377,8 +379,4 @@ export class BHMColliderComponent extends Component {
     heightAtPix(px, py) {
         return this.bhm.pxdata[py][px] * this.scale;
     }
-
-    intersectsBox(box) {}
-
-    intersectsSphere(sphere) {}
 }

@@ -12,7 +12,7 @@
 <body>
     <script type="module">
         import { initRadon, activeCamera, TargetCameraComponent, Component, setActiveScene, startRadon, loadGLTF, loadEnvironmentHDR, loadBHM, Input, lerpAngle, RAD2DEG, DEG2RAD, FORWARD, applyOutdoorsLighting, BoxColliderComponent, SphereColliderComponent, BHMColliderComponent } from './src/radon.js'
-        import { Scene, Vector3, BoxGeometry, MeshBasicMaterial, Mesh } from './src/three.module.js'
+        import { Scene, Vector3, BoxGeometry, MeshBasicMaterial, Mesh } from './src/three.module.min.js'
 
         const WORLD_SCALE = 200;
 
@@ -20,15 +20,18 @@
             onInit({ speed, bhmc, groundOff }) {
                 this.speed = speed ?? 6;
                 this.targetAngle = 0;
-                this.mapping = Input.createMapping({ vertical: { n: ['w'], p: ['s'] }, horizontal: { n: ['a'], p: ['d'] } });
+                this.mapping = Input.createMapping({
+                    vertical: { n: [ 'w' ], p: [ 's' ], a: 1 },
+                    horizontal: { n: [ 'a' ], p: [ 'd' ], a: 0 },
+                    jump: { n: [], p: [ ' ' ], b: 0 }
+                });
                 this.coll = this.object.FindComponent['SphereColliderComponent'];
                 this.bhmc = bhmc;
                 this.velY = 0;
                 this._heiAtPt = 0;
                 this.groundOff = groundOff || 0;
 
-                const [ _x, _y ] = this.bhmc.posToPix(this.object.position.x, this.object.position.z);
-                this._heiAtPt = this.bhmc.heightAtPix(_x, _y);
+                this._heiAtPt = this.bhmc.heightAtPos(this.object.position.x, this.object.position.z);
             }
 
             onTick({ delta }) {
@@ -43,10 +46,7 @@
                     if (this.coll.findCollision()) {
                         this.object.translateOnAxis(FORWARD, this.speed * -delta);
                     }
-
-                    const [ _x, _y ] = this.bhmc.posToPix(this.object.position.x, this.object.position.z);
-                    this._heiAtPt = this.bhmc.heightAtPix(_x, _y);
-
+                    this._heiAtPt = this.bhmc.heightAtPos(this.object.position.x, this.object.position.z);
                 }
                 this.object.rotation.y = lerpAngle(this.object.rotation.y * RAD2DEG, this.targetAngle, 10 * delta) * DEG2RAD;
                 
@@ -64,14 +64,14 @@
                     isGrounded = true;
                 }
 
-                if (isGrounded && Input.isKeyDownNow(' ')) this.velY = 9.81;
+                if (isGrounded && this.mapping.jump) this.velY = 9.81;
             }
         }
 
         initRadon({ debug: (window.outerHeight - window.innerHeight) > 100 || (window.outerWidth - window.innerWidth) > 100 });
         const env = await loadEnvironmentHDR("footprint_court_2k.hdr");
         activeCamera.position.set(0, 10, 10);
-        const models = await loadGLTF([ "ht2.glb", "cube.glb" ]);
+        const models = await loadGLTF([ "ht2.min.glb", "cube.glb" ]);
         const world = models[0].instance();
         world.scene.scale.set(WORLD_SCALE, WORLD_SCALE, WORLD_SCALE);
 

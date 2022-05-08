@@ -103,6 +103,7 @@ export function startRadon() {
         renderer.render(activeScene, activeCamera);
 
         Input.keyboardf = {};
+        if (Input._gamepads.length > 0) Input._update();
         _stats?.forEach(x => x.update());
         requestAnimationFrame(animate);
     }
@@ -265,6 +266,9 @@ const Input = {
     keyboard: {},
     keyboardf: {},
     mappings: [],
+    activeGamepad: 0,
+    _gamepads: [],
+
     _init() {
         window.addEventListener('keydown', ev => {
             this.keyboard[ev.key.toLowerCase()] = true;
@@ -280,12 +284,21 @@ const Input = {
             this.keyboard = {};
             this.keyboardf = {};
         });
+
+        window.addEventListener('gamepadconnected', (ev => this._gamepads[ev.gamepad.index] = ev.gamepad).bind(this));
+        window.addEventListener('gamepaddisconnected', (ev => this.gamepads.splice(ev.gamepad.index, 1)).bind(this));
+        window.Input = this;
     },
     _update() {
         this.mappings.forEach(m => {
             for (const key in m.def) {
                 let val = 0;
 
+                if (m.def[key].a !== undefined) {
+                    val = this.getAxis(m.def[key].a);
+                    if (m.def[key].ai) val *= -1;
+                }
+                if (m.def[key].b !== undefined) val = this.isButtonDown(m.def[key].b);
                 for (const k of m.def[key].n)
                     if (this.isKeyDown(k)) { val--; break; }
                 for (const k of m.def[key].p)
@@ -302,6 +315,14 @@ const Input = {
 
     isKeyDownNow(key) {
         return this.keyboardf[key.toLowerCase()];
+    },
+
+    isButtonDown(btn, index=this.activeGamepad) {
+        return this._gamepads[index]?.buttons[btn].pressed;
+    },
+
+    getAxis(axis, index=this.activeGamepad) {
+        return this._gamepads[index]?.axes[axis] ?? 0;
     },
 
     createMapping(def) {

@@ -1,4 +1,4 @@
-import { WebGLRenderer, PerspectiveCamera, Clock, AnimationMixer, Object3D, LoopOnce, PMREMGenerator, sRGBEncoding, Vector3, AmbientLight, HemisphereLight, DirectionalLight, WireframeGeometry, LineSegments, BoxGeometry, Color, Box3, Sphere } from './three.module.js'
+import { WebGLRenderer, PerspectiveCamera, Clock, AnimationMixer, Object3D, LoopOnce, PMREMGenerator, sRGBEncoding, Vector3, AmbientLight, HemisphereLight, DirectionalLight, BoxGeometry, Box3, Sphere } from './three.module.min.js'
 import { GLTFLoader } from './GLTFLoader.js'
 import { RGBELoader } from './RGBELoader.js'
 import Stats from './stats.module.js'
@@ -24,12 +24,14 @@ export function initRadon(options={}) {
 
         camera: {
             fov: 75,
-            near: .1,
+            near: .01,
             far: 1000
         },
         physicallyCorrectLights: true,
         outputEncoding: sRGBEncoding,
         clearColor: 0x000000,
+
+        antialias: false,
 
         debug: false
     }, options);
@@ -46,7 +48,7 @@ export function initRadon(options={}) {
 
     activeCamera = new PerspectiveCamera(options.camera.fov, size[0] / size[1], options.camera.near, options.camera.far);
     
-    renderer = new WebGLRenderer();
+    renderer = new WebGLRenderer({ antialias: options.antialias });
     renderer.physicallyCorrectLights  = options.physicallyCorrectLights;
     renderer.outputEncoding = options.outputEncoding;
     renderer.setClearColor(options.clearColor);
@@ -127,19 +129,6 @@ export async function loadGLTF(path) {
         return { scene: wrapper }
     }
     return gltf;
-}
-
-export function displayWireframe(scene, object) {
-    const geometry = new BoxGeometry(object.scale.x * 2, object.scale.y * 2, object.scale.z * 2);
-    const wireframe = new WireframeGeometry(geometry);
-    const line = new LineSegments(wireframe);
-    line.material.depthTest = false;
-    line.material.color = new Color(0, 0, 0);
-    line.position.x = object.position.x;
-    line.position.y = object.position.y;
-    line.position.z = object.position.z;
-
-    scene.add(line);
 }
 
 export function setActiveScene(scene) { activeScene = scene; }
@@ -237,7 +226,6 @@ export class BoxColliderComponent extends Component {
         if (offset) box = this.box.clone().translate(offset);
         for (const po of physicsScenes[this.pscene]) {
             if (po.object.uuid == this.object.uuid) continue;
-            po.updateCollider();
             if (po.box && (box.intersectsBox(po.box) ^ po.invert ^ this.invert)) return po;
             if (po.sphere && (box.intersectsSphere(po.sphere) ^ po.invert ^ this.invert)) return po;
         }
@@ -267,7 +255,6 @@ export class SphereColliderComponent extends Component {
         if (offset) sphere = this.sphere.clone().translate(offset);
         for (const po of physicsScenes[this.pscene]) {
             if (po.object.uuid == this.object.uuid) continue;
-            po.updateCollider();
             if (po.box && (sphere.intersectsBox(po.box) ^ po.invert ^ this.invert)) return po;
             if (po.sphere && (sphere.intersectsSphere(po.sphere) ^ po.invert ^ this.invert)) return po;
         }
@@ -351,11 +338,9 @@ export async function loadBHM(path) {
 
     let pxdata = [];
     for (let x = 0; x < size; x++) {
-        let row = [];
         for (let y = 0; y < size; y++) {
-            row[y] = data.getUint8(9 + (y * size + x), false) / 255 * maxY;
+            pxdata[x * size + y] = data.getUint8(9 + (y * size + x), false) / 255 * maxY;
         }
-        pxdata[x] = row;
     }
 
     return { size, maxY, pxdata } 
@@ -377,6 +362,10 @@ export class BHMColliderComponent extends Component {
     }
 
     heightAtPix(px, py) {
-        return this.bhm.pxdata[py][px] * this.scale;
+        return this.bhm.pxdata[py * this.bhm.size + px] * this.scale;
+    }
+
+    heightAtPos(x, y) {
+        return this.bhm.pxdata[(((-((this.object.position.z - y) / this.scale) + 1) / 2 * this.bhm.size) | 0) * this.bhm.size + (((-((this.object.position.x - x) / this.scale) + 1) / 2 * this.bhm.size) | 0)] * this.scale;
     }
 }
